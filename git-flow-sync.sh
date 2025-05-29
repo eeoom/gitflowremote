@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Git Flow Sync Tool v2.1
-# Supports: start, finish, cleanup
+# Git Flow Sync Tool v3.0
+# Supports: start, finish, cleanup, support branches, auto-stash, auto tag push, CI trigger
 
 set -e
 
@@ -11,8 +11,8 @@ NAME=""
 DRYRUN=0
 VERBOSE=0
 FORCE_CLEAN=0
+CITRIGGER_URL=""
 
-# Color codes
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
@@ -20,12 +20,7 @@ NC='\033[0m'
 
 print_usage() {
   echo "Usage:"
-  echo "  $0 [--dry-run] [--verbose] <start|finish|cleanup> <type?> <name?>"
-  echo ""
-  echo "Examples:"
-  echo "  $0 start feature login-ui"
-  echo "  $0 finish feature login-ui --verbose"
-  echo "  $0 cleanup"
+  echo "  $0 [--dry-run] [--verbose] [--force] [--ci-url <url>] <start|finish|cleanup> [feature|release|hotfix|support] <branch-name>"
 }
 
 log() {
@@ -40,20 +35,33 @@ run() {
   fi
 }
 
-# Parse args
+safe_stash() {
+  if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo -e "${YELLOW}⚠️ Uncommitted changes detected. Stashing...${NC}"
+    run "git stash push -m 'auto-stash by git-flow-sync'"
+  fi
+}
+
+trigger_ci() {
+  if [[ -n "$CITRIGGER_URL" ]]; then
+    echo -e "${GREEN}📡 Triggering CI/CD at: $CITRIGGER_URL${NC}"
+    run "curl -X POST $CITRIGGER_URL"
+  fi
+}
+
 POSITIONAL=()
 while [[ $# -gt 0 ]]; do
   case $1 in
     --dry-run) DRYRUN=1; shift ;;
     --verbose) VERBOSE=1; shift ;;
     --force) FORCE_CLEAN=1; shift ;;
+    --ci-url) CITRIGGER_URL=$2; shift 2 ;;
     start|finish|cleanup) ACTION=$1; shift ;;
-    feature|release|hotfix) TYPE=$1; shift ;;
+    feature|release|hotfix|support) TYPE=$1; shift ;;
     *) [[ -z "$NAME" ]] && NAME=$1 && shift || { echo -e "${RED}Unknown arg: $1${NC}"; exit 1; } ;;
   esac
 done
 
-# ========== CLEANUP ACTION ==========
 if [[ "$ACTION" == "cleanup" ]]; then
   echo -e "${GREEN}🧹 Running cleanup...${NC}"
   run "git fetch --prune"
@@ -88,18 +96,17 @@ if [[ "$ACTION" == "cleanup" ]]; then
       echo -e "${YELLOW}Skipped branch deletion.${NC}"
     fi
   fi
-
   exit 0
 fi
 
-# ========== START / FINISH ==========
-if [[ -z "$ACTION" || -z "$TYPE" || -z "$NAME" ]]; then
+if [[ -z "$ACTION" || ( "$ACTION" != "cleanup" && ( -z "$TYPE" || -z "$NAME" )) ]]; then
   echo -e "${RED}Missing required arguments.${NC}"
   print_usage
   exit 1
 fi
 
 run "git fetch --prune"
+safe_stash
 
 case "$ACTION" in
   start)
@@ -117,9 +124,12 @@ case "$ACTION" in
 
     echo -e "${GREEN}📤 Pushing $BASE_BRANCH and tags...${NC}"
     run "git push origin $BASE_BRANCH --follow-tags"
+    run "git push origin --tags"
 
     echo -e "${GREEN}🧹 Deleting remote $TYPE/$NAME branch...${NC}"
     run "git push origin :$TYPE/$NAME"
+
+    trigger_ci
     ;;
 
   *)
