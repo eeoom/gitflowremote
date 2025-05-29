@@ -1,28 +1,32 @@
 # 🚀 git-flow-sync
 
-A CLI tool that extends [Git Flow](https://nvie.com/posts/a-successful-git-branching-model/) with automatic **remote synchronization**, **branch cleanup**, and enhanced **developer ergonomics**.
+A CLI tool that extends [Git Flow](https://nvie.com/posts/a-successful-git-branching-model/) with automatic **remote synchronization**, **branch cleanup**, and enhanced **workflow automation** for teams.
 
-**Features:**
+---
 
-- Start or finish `feature`, `release`, or `hotfix` branches
-- Automatically push updates to remote
-- Automatically delete remote branches after finishing
-- Cleanup local branches that track deleted remotes
+## 🧩 Features
+
+- Start or finish `feature`, `release`, `hotfix`, and `support` branches
+- Automatically push updates and tags to remote
+- Delete remote branches after finishing a flow
+- Auto-detect and clean up local branches tracking deleted remotes
+- Auto-stash uncommitted changes for safety
+- Optional CI/CD trigger via `--ci-url`
 - Dry run and verbose output modes
-- Confirmation prompt to prevent accidental deletion
 
 ---
 
 ## 📦 Installation
 
-1. Clone or download `git-flow-sync.sh`
+1. Save the script file:
+   - [Download git-flow-sync-extended.sh](./git-flow-sync-extended.sh)
 2. Make it executable:
    ```bash
-   chmod +x git-flow-sync.sh
+   chmod +x git-flow-sync-extended.sh
    ```
 3. (Optional) Move it into your `$PATH`:
    ```bash
-   mv git-flow-sync.sh ~/bin/git-flow-sync
+   sudo mv git-flow-sync-extended.sh /usr/local/bin/git-flow-sync
    ```
 
 ---
@@ -38,91 +42,71 @@ A CLI tool that extends [Git Flow](https://nvie.com/posts/a-successful-git-branc
 ## 🔧 Usage
 
 ```bash
-git-flow-sync.sh [--dry-run] [--verbose] <start|finish|cleanup> [feature|release|hotfix] <branch-name>
-```
-
-### ✅ Commands
-
-| Command        | Description                                                                 |
-|----------------|-----------------------------------------------------------------------------|
-| `start`        | Start a new Git Flow branch and push to remote                              |
-| `finish`       | Finish a Git Flow branch, push target branch (e.g., `develop`), and delete remote |
-| `cleanup`      | Clean up local branches that track deleted remote branches (`[gone]`)       |
-
----
-
-### 🔁 Examples
-
-#### Start a feature and push to remote
-
-```bash
-git-flow-sync.sh start feature login-ui
-```
-
-#### Finish a feature, sync `develop`, and delete remote feature branch
-
-```bash
-git-flow-sync.sh finish feature login-ui
-```
-
-#### Preview what will be cleaned up (dry run)
-
-```bash
-git-flow-sync.sh cleanup --dry-run
-```
-
-#### Cleanup and auto-delete all stale local branches (force)
-
-```bash
-git-flow-sync.sh cleanup --force
+git-flow-sync [--dry-run] [--verbose] [--force] [--ci-url <url>] <start|finish|cleanup> [feature|release|hotfix|support] <branch-name>
 ```
 
 ---
 
-## 🧩 Options
+## ✅ Commands
 
-| Option        | Description                                                                 |
-|---------------|-----------------------------------------------------------------------------|
-| `--dry-run`   | Show what would happen without executing any changes                        |
-| `--verbose`   | Print detailed output of all commands being executed                        |
-| `--force`     | Skip confirmation when deleting stale local branches during `cleanup`       |
+| Command   | Description                                                                 |
+|-----------|-----------------------------------------------------------------------------|
+| `start`   | Start a new Git Flow branch and push to remote                              |
+| `finish`  | Finish a Git Flow branch, push target branch and tags, delete remote branch |
+| `cleanup` | Remove local branches that track deleted remote branches (`[gone]`)         |
 
 ---
 
-## 🧹 Cleanup Behavior
+## ⚙️ Options
 
-The `cleanup` command:
+| Option           | Description                                                             |
+|------------------|-------------------------------------------------------------------------|
+| `--dry-run`      | Show actions without executing                                           |
+| `--verbose`      | Show detailed output of every command                                   |
+| `--force`        | Auto-delete stale local branches without confirmation                   |
+| `--ci-url <url>` | Send a POST request to the given URL after finishing a branch           |
 
-1. Runs `git fetch --prune`
-2. Finds local branches tracking deleted remotes (`[gone]`)
-3. Optionally deletes those branches (with prompt or force)
+---
 
-This helps keep your repo clean and prevents tracking outdated work.
+## 🔁 Examples
+
+### Start a feature and push
+
+```bash
+git-flow-sync start feature navbar-update
+```
+
+### Finish a release and trigger CI
+
+```bash
+git-flow-sync finish release v1.4.0 --ci-url https://ci.example.com/deploy
+```
+
+### Safely cleanup tracking-deleted local branches
+
+```bash
+git-flow-sync cleanup --verbose
+```
+
+### Force delete all stale local branches (no prompt)
+
+```bash
+git-flow-sync cleanup --force
+```
 
 ---
 
 ## 🔐 Safety
 
-- Never deletes anything automatically unless `--force` is explicitly provided.
-- Always prompts before deleting branches in interactive mode.
-
----
-
-## 🛠 Extension Ideas
-
-You can easily expand the script to:
-
-- Support `support` branches
-- Add `git stash` or save work protection
-- Push tags to remote on `release finish`
-- Generate changelogs
-- Integrate with CI/CD triggers
+- Uncommitted changes are auto-stashed before `finish`
+- Never deletes local branches without prompt (unless `--force` is set)
+- Supports `--dry-run` for all destructive operations
 
 ---
 
 ## 📄 License
 
-MIT – Use and customize freely.
+MIT – Free to use and adapt.
 
 ---
 
